@@ -43,7 +43,7 @@ impl Default for MavEnumEntry {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct MavMessage {
-    pub id: u8,
+    pub id: u16,
     pub name: String,
     pub description: Option<String>,
     pub fields: Vec<MavField>,
@@ -93,6 +93,7 @@ fn parse_type(s: &str) -> Option<MavType> {
         "float" => Some(Float),
         "Double" => Some(Double),
         _ => {
+//            println!("Inside {:?}", s);
             if s.ends_with("]") {
                 let start = s.find("[").unwrap();
                 let size = s[start + 1..(s.len() - 1)].parse::<usize>().unwrap();
@@ -204,10 +205,13 @@ pub enum MavXmlElement {
     Messages,
     Message,
     Field,
+    Dialect,
+    Ignore,
 }
 
 fn identify_element(s: &str) -> Option<MavXmlElement> {
     use parser::MavXmlElement::*;
+//    println!("Element {:?}", s);
     match s {
         "version" => Some(Version),
         "mavlink" => Some(Mavlink),
@@ -220,6 +224,8 @@ fn identify_element(s: &str) -> Option<MavXmlElement> {
         "messages" => Some(Messages),
         "message" => Some(Message),
         "field" => Some(Field),
+        "dialect" => Some(Dialect),
+        "extensions" => Some(Ignore),
         _ => None,
     }
 }
@@ -238,6 +244,9 @@ fn is_valid_parent(p: Option<MavXmlElement>, s: MavXmlElement) -> bool {
         Messages => p == Some(Mavlink),
         Message => p == Some(Messages),
         Field => p == Some(Message),
+        Dialect => p == Some(Mavlink),
+        Ignore => p == Some(Message),
+
     }
 }
 
@@ -330,7 +339,8 @@ pub fn parse_profile(file: &mut Read) -> MavProfile {
                                     message.name = attr.value.clone();
                                 }
                                 "id" => {
-                                    message.id = attr.value.parse::<u8>().unwrap();
+                                    println!("{:?}", attr.value);
+                                    message.id = attr.value.parse::<u16>().unwrap();
                                 }
                                 _ => (),
                             }
@@ -341,6 +351,7 @@ pub fn parse_profile(file: &mut Read) -> MavProfile {
                                     field.name = attr.value.clone();
                                 }
                                 "type" => {
+//                                    println!("Outside {:?}", &attr.value);
                                     field.mavtype = parse_type(&attr.value).unwrap();
                                 }
                                 "enum" => {
@@ -389,6 +400,9 @@ pub fn parse_profile(file: &mut Read) -> MavProfile {
                     }
                     (Some(&Version), Some(&Mavlink)) => {
                         println!("TODO: version {:?}", s);
+                    }
+                    (Some(&Dialect), Some(&Mavlink)) => {
+                        println!("TODO: dialect {:?}", s);
                     }
                     data => {
                         panic!("unexpected text data {:?} reading {:?}", data, s);
@@ -614,7 +628,7 @@ pub fn generate_mod<R: Read, W: Write>(input: &mut R, output: &mut W) {
     writeln!(output, "        }}");
     writeln!(output, "    }}");
     writeln!(output, "");
-    writeln!(output, "    pub fn message_id(&self) -> u8 {{");
+    writeln!(output, "    pub fn message_id(&self) -> u16 {{");
     writeln!(output, "        match self {{");
     for item in &profile.messages {
         writeln!(output, "            &MavMessage::{}(..) => {},", item.name, item.id);
