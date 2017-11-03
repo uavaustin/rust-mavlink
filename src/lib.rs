@@ -41,7 +41,7 @@ pub fn read<R: Read>(r: &mut R) -> io::Result<(Header, MavMessage)> {
         let seq    =  try!(r.read_u8());
         let sysid  =  try!(r.read_u8());
         let compid =  try!(r.read_u8());
-        let msgid  =  try!(r.read_u8());
+        let msgid  =  try!(r.read_u16());
         
         let mut payload_buf = [0; 255];
         let payload = &mut payload_buf[..len];
@@ -67,13 +67,14 @@ pub fn read<R: Read>(r: &mut R) -> io::Result<(Header, MavMessage)> {
 pub fn write<W: Write>(w: &mut W, header: Header, data: &MavMessage) -> io::Result<()> {
     let msgid = data.message_id();
     let payload = data.serialize();
-    
+
+
     let header = &[
-        MAV_STX,
-        payload.len() as u8,
-        header.sequence,
-        header.system_id,
-        header.component_id,
+        MAV_STX as u16,
+        payload.len() as u16,
+        header.sequence as u16,
+        header.system_id as u16,
+        header.component_id as u16,
         msgid,
     ];
     

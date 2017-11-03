@@ -616,7 +616,7 @@ pub fn generate_mod<R: Read, W: Write>(input: &mut R, output: &mut W) {
     writeln!(output, "");
 
     writeln!(output, "impl MavMessage {{");
-    writeln!(output, "    pub fn parse(id: u8, payload: &[u8]) -> Option<MavMessage> {{");
+    writeln!(output, "    pub fn parse(id: u16, payload: &[u8]) -> Option<MavMessage> {{");
     writeln!(output, "        match id {{");
     for item in &profile.messages {
         writeln!(output, "            {} => Some(MavMessage::{}({}_DATA::parse(payload))),",
@@ -636,7 +636,7 @@ pub fn generate_mod<R: Read, W: Write>(input: &mut R, output: &mut W) {
     writeln!(output, "        }}");
     writeln!(output, "    }}");
     writeln!(output, "");
-    writeln!(output, "    pub fn extra_crc(id: u8) -> u8 {{");
+    writeln!(output, "    pub fn extra_crc(id: u16) -> u8 {{");
     writeln!(output, "        match id {{");
     for item in &profile.messages {
         writeln!(output, "            {} => {},", item.id, extra_crc(item));
